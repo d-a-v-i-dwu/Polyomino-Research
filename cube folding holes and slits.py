@@ -9,11 +9,11 @@ import time
 
 
 #dimensions of the rectangular net, dim_a = rows, dim_b = cols
-dim_a = 3
-dim_b = 6
+dim_a = 6
+dim_b = 4
 #coordinates of the square holes and slits
-holes = [[1,1]]
-slits = [[0,3,0], [0,4,0], [1,3,2], [1,4,2]]
+holes = [[4,1]]
+slits = [[1,2,1], [2,2,1], [1,3,3], [2,3,3]]
 #[[1,0,0],[2,3,1,2]]#the first two numbers in each list are the coordinates of a
 #square in grid1 and the remaining numbers denote which of its sides have slits (down=0,right=1,up=2,left=3). E.g.
 #[2,2,1,2,3] means the square (2,2) in grid1 has slits on its right, upper and left side.
@@ -607,22 +607,32 @@ def find_grid_labellings(): #grid1 is assumed to contain 0 for every hole square
     return translated_valid_labellings #valid_lblngs #partial_lblgs   #translated_labellings
 
 
-def allocate_faces(vertex_labelling):
-    cube_faces = [[0, 10, 100, 110], [0, 1, 10, 11], [10, 11, 110, 111], [0, 1, 100, 101], [100, 101, 110, 111], [1, 11, 101, 111]]
-    
+def allocate_faces(vertex_labelling, special_vertices):
+    cube_faces = [[1, 11, 101, 111], [0, 1, 100, 101], [100, 101, 110, 111], [0, 1, 10, 11], [10, 11, 110, 111], [0, 10, 100, 110]]
+
     face_numbering = []
 
     for row_idx in range(len(vertex_labelling) - 1):
         face_numbering.append([])
 
         for col_idx in range(len(vertex_labelling[row_idx]) - 1):
-            face_vertices = [vertex_labelling[row_idx][col_idx], vertex_labelling[row_idx+1][col_idx], vertex_labelling[row_idx][col_idx+1], vertex_labelling[row_idx+1][col_idx+1]]
-            face_vertices.sort()
+            face_vertices = [vertex_labelling[row_idx][col_idx], vertex_labelling[row_idx][col_idx+1], vertex_labelling[row_idx+1][col_idx+1], vertex_labelling[row_idx+1][col_idx], ]
+            sorted_face_vertices = sorted(face_vertices)
             try:
-                face_numbering[row_idx].append(cube_faces.index(face_vertices) + 1)
+                face_numbering[row_idx].append(cube_faces.index(sorted_face_vertices) + 1)
             except:
                 if 5 in face_vertices:
-                    face_numbering[row_idx].append(-1)
+
+                    if face_vertices[0] == 5:
+                        face_vertices[0] = special_vertices[(row_idx, col_idx)][1][1]
+                    elif face_vertices[1] == 5:
+                        face_vertices[1] = special_vertices[(row_idx, col_idx+1)][1][0]
+                    elif face_vertices[2] == 5:
+                        face_vertices[2] = special_vertices[(row_idx+1, col_idx+1)][0][0]
+                    else:
+                        face_vertices[3] = special_vertices[(row_idx+1, col_idx)][0][1]
+                    face_numbering[row_idx].append(cube_faces.index(sorted(face_vertices)) + 1)
+
                 else:
                     face_numbering[row_idx].append(0)
                 
@@ -697,8 +707,8 @@ time1=time.time()
 
 grid1,grid2 = create_grids()
 
-print('grid1 \n',grid1,'\n')
-print('grid2 \n',grid2,'\n')
+# print('grid1 \n',grid1,'\n')
+# print('grid2 \n',grid2,'\n')
 
 slit_dictionary = create_dictionary_for_slits()
 # print('slit_dictionary \n',slit_dictionary,'\n')
@@ -712,15 +722,23 @@ grid1_BFS = search_net(start_pos)
 complete_labellings = find_grid_labellings()
 
 for i in range(len(complete_labellings)):
-    print(complete_labellings[i][0])
-    print()
+    # print(complete_labellings[i][0])
+    # print()
 
-    face_numbering = allocate_faces(complete_labellings[i][0])
+    face_numbering = allocate_faces(complete_labellings[i][0], complete_labellings[i][1])
     for row in face_numbering:
         print(row)
     print()
+    print(f'Face labellings as a single list:')
+    fnums = []
+    for row in face_numbering:
+        fnums += row
+    while 0 in fnums:
+        fnums.remove(0)
+    print(fnums)
+    print()
 
-    print(complete_labellings[i][1],'\n')
+    # print(complete_labellings[i][1],'\n')
 print('Found valid labellings:', len(complete_labellings),'\n')
 
 print(get_neighbour_ids())
